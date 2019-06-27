@@ -18,7 +18,7 @@ fetch.fetchUrl("https://slack.com/api/team.info?token="+ process.env.SLACK_KEY,(
 app.listen(port,()=>{
     setInterval(()=>{
         fetch.fetchUrl("https://slack.com/api/channels.list?token=" + process.env.SLACK_KEY,(error, meta, body)=>{
-            
+
             for(let c of JSON.parse(body.toString()).channels){
                 fetch.fetchUrl("https://slack.com/api/pins.list?token=" + process.env.SLACK_KEY + "&channel=" + c.id ,(error, meta, body)=>{
 
