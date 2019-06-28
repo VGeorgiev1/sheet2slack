@@ -6,7 +6,10 @@
   "dependencies": {
     "express": "^4.17.1"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "eslint": "^6.0.1",
+    "eslint-config-google": "^0.13.0"
+  },
   "scripts": {
     "start": "node index.js"
   },
