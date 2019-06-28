@@ -6,55 +6,57 @@ const port = 3000;
 const fetch = require('node-fetch');
 
 
-const checkTimer = 2000 //1000 * 60 * 60 * 24; // Check for unsolved pins oncea day
+const checkTimer =  1000 * 60 * 60 * 24; // Check for unsolved pins once per day
 
 app.listen(port, ()=>{
-    setInterval(()=>{
-        slackRequest(
+    setInterval(async()=>{
+        let response = await slackRequest(
         {
             method: 'channels.list',
             token: process.env.SLACK_KEY
-
-        }).then((body)=>{
-            const channels = body.channels;
-            for (const c of channels) {
-                slackRequest(
-                {
-                    method: 'pins.list',
-                    token: process.env.SLACK_KEY,
-                    channel: c.id
-
-                }).then((body)=>{
-                    const items = body.items;
-                    for (const p of items) {
-                        //if (new Date(Number(p.created * 1000) + 12096e5).getDay() >= new Date()) { // check if the pin creation date was two weeks or more before today
-                            const rex = new RegExp('<@\.+>');
-                            const match = p.message.text.match(rex);
-                            if (match) {
-                                const id = match[0].slice(2, match[0].length-1);
-                                slackRequest(
-                                {
-                                    method: 'im.open',
-                                    token: process.env.SLACK_BOT_KEY,
-                                    user: id
-                                }).then((body)=>{
-                                    const dmId = body.channel.id;
-                                    if (dmId) {
-                                        slackRequest(
-                                        {method: 'chat.postMessage',
-                                            token: process.env.SLACK_BOT_KEY,
-                                            channel: dmId, text: 'You have an old pinned still not resolved in channel '+ c.name + '\n ' + p.message.permalink
-                                        }).then((body)=>{
-                                            console.log(body);
-                                        });
-                                    }
-                                })
-                            }
-                        //}
-                    }
-                })
-            }
         })
+
+        let channels = response.channels
+
+        for (const c of channels) {
+            slackRequest(
+            {
+                method: 'pins.list',
+                token: process.env.SLACK_KEY,
+                channel: c.id
+
+            }).then(async (body)=>{
+                const items = body.items;
+                for (const p of items) {
+                    if (new Date(Number(p.created * 1000) + 12096e5).getDay() >= new Date()) { // check if the pin creation date was two weeks or more before today
+                        const rex = new RegExp('<@\.+>');
+                        const match = p.message.text.match(rex);
+                        if (match) {
+                            const id = match[0].slice(2, match[0].length-1);
+                            let response = await slackRequest(
+                            {
+                                method: 'im.open',
+                                token: process.env.SLACK_BOT_KEY,
+                                user: id
+
+                            })
+                            const dmId = response.channel.id;
+                            if (dmId) {
+                                let response = await slackRequest(
+                                {   
+                                    method: 'chat.postMessage',
+                                    token: process.env.SLACK_BOT_KEY,
+                                    channel: dmId, text: 'You have an old pinned still not resolved in channel '+ c.name + '\n ' + p.message.permalink
+                                })
+
+                                console.log(response)
+                            }
+                        }
+                    }
+                }
+            })
+        }
+        
     },checkTimer)
 });
 
