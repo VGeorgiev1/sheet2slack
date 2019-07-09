@@ -27,30 +27,39 @@ app.listen(port, ()=>{
 
             }).then(async (body)=>{
                 const items = body.items;
-                for (const p of items) {
-                    if (new Date(Number(p.created * 1000) + 12096e5).getDay() >= new Date()) { // check if the pin creation date was two weeks or more before today
+                for (const pin of items) {
+                    if (new Date(Number(pin.created * 1000) + 12096e5).getDay() >= new Date()) { // check if the pinin creation date was two weeks or more before today
                         const rex = new RegExp('<@\.+>');
-                        const match = p.message.text.match(rex);
+                        const match = pin.message.text.match(rex);
                         if (match) {
-                            const id = match[0].slice(2, match[0].length-1);
-                            let response = await slackRequest(
+                            slackRequest(
                             {
-                                method: 'im.open',
-                                token: process.env.SLACK_BOT_KEY,
-                                user: id
+                                method: 'conversations.replies',
+                                token: process.env.SLACK_KEY,
+                                channel: pin.channel,
+                                ts: pin.message.ts
 
-                            })
-                            const dmId = response.channel.id;
-                            if (dmId) {
-                                let response = await slackRequest(
+                            }).then((body)=>{
+                                let sendTo = null;
+                                for(let i = body.messages.length - 1;i >= 0;i--){
+                                    let  match = body.messages[i].text.match(rex)
+                                    if(match){
+                                        sendTo = match[0]
+                                        break;
+                                    }
+                                }
+                                console.log(pin)
+                                slackRequest(
                                 {   
                                     method: 'chat.postMessage',
                                     token: process.env.SLACK_BOT_KEY,
-                                    channel: dmId, text: 'You have an old pinned still not resolved in channel '+ c.name + '\n ' + p.message.permalink
+                                    channel: pin.channel,
+                                    thread_ts: pin.message.thread_ts || pin.message.ts,
+                                    text: sendTo + ' You have an unresolved pin'
+                                }).then((body)=>{
+                                    console.log(body)
                                 })
-
-                                console.log(response)
-                            }
+                            })
                         }
                     }
                 }
